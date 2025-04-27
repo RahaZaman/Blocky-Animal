@@ -96,6 +96,8 @@ let g_selectedSize = 5;
 let g_selectedType = POINT;
 let g_globalAngle = 0;
 let g_yellowAngle = 0;
+let g_magentaAngle = 0;
+let g_yellowAnimation = false;
 // let g_segment = 10;  // segment for the circle
 
 // Set up actions for HTML UI elements
@@ -127,7 +129,12 @@ function addActionsForHTMLUI() {
   // clear button event
   document.getElementById('clearButton').onclick = function() {g_shapesList = []; renderAllShapes();};
 
+  document.getElementById('magentaSlide').addEventListener('mousemove', function() { g_magentaAngle = this.value; renderAllShapes(); });
+
   document.getElementById('yellowSlide').addEventListener('mousemove', function() { g_yellowAngle = this.value; renderAllShapes(); });
+
+  document.getElementById('animationYellowOnButton').onclick = function() {g_yellowAnimation = true };
+  document.getElementById('animationYellowOffButton').onclick = function() {g_yellowAnimation = false};
 
   // Size Slider Event 
   document.getElementById('angleSlide').addEventListener('mousemove', function() { g_globalAngle = this.value; renderAllShapes(); });
@@ -167,7 +174,27 @@ function main() {
 
   // // Clear <canvas>
   // gl.clear(gl.COLOR_BUFFER_BIT);
+  // renderAllShapes();
+  requestAnimationFrame(tick);
+}
+
+var g_startTime = performance.now() / 1000.0;
+var g_seconds = performance.now() / 1000.0 + g_startTime;
+
+// Called by browser repeatedly whenever its time
+function tick() {
+  // Prints some debugging information to console
+  g_seconds = performance.now() / 1000.0 + g_startTime;
+  console.log(performance.now);
+
+  // Update Animation Angles
+  updateAnimationAngles();
+
+  // Draw everything
   renderAllShapes();
+
+  // Tell the browser to update again when it has time
+  requestAnimationFrame(tick);
 }
 
 var g_shapesList = [];
@@ -210,6 +237,13 @@ function convertCoordinatesEventToGL(ev) {
   return([x,y]);
 }
 
+// Update the angles of everything if currently animated
+function updateAnimationAngles() {
+  if (g_yellowAnimation) {
+    g_yellowAngle = (45 * Math.sin(g_seconds));
+  }
+}
+
 // Draw every shape that is supposed to be in the canvas
 function renderAllShapes() {
 
@@ -247,6 +281,15 @@ function renderAllShapes() {
   leftarm.matrix.setTranslate(0, -.5, 0.0);
   leftarm.matrix.rotate(-5, 1, 0, 0);
   leftarm.matrix.rotate(-g_yellowAngle, 0, 0, 1);
+  // leftarm.matrix.rotate(45*Math.sin(g_seconds), 0, 0, 1);
+
+  // if (g_yellowAnimation) {
+  //   leftarm.matrix.rotate(45*Math.sin(g_seconds), 0, 0, 1);
+  // } else {
+  //   leftarm.matrix.rotate(-g_yellowAngle, 0, 0, 1);
+  // }
+
+  var yellowCoordinatesMat = new Matrix4(leftarm.matrix);
   leftarm.matrix.scale(0.25, .7, .5);
   leftarm.matrix.translate(-.5, 0, 0);
   leftarm.render();
@@ -254,9 +297,16 @@ function renderAllShapes() {
   // Test box
   var box = new Cube();
   box.color = [1, 0, 1, 1];
-  box.matrix.translate(-.1, .1, -.0, 0);
-  box.matrix.rotate(-30, 1, 0, 0);
-  box.matrix.scale(.2, .4, .2);
+  box.matrix = yellowCoordinatesMat;
+  // box.matrix.translate(0, 0.65, 0);
+  // box.matrix.rotate(45, 1, 0, 0);
+  // box.matrix.scale(.3, .3, .3);
+  // box.matrix.translate(-5.0, -0.001);
+
+  box.matrix.translate(0, 0.65, 0);
+  box.matrix.rotate(g_magentaAngle, 0, 0, 1);
+  box.matrix.scale(.3, .3, .3);
+  box.matrix.translate(-.5, 0, -0.001);
   box.render();
 
   // Check the time at the end of the function, and show on web page
