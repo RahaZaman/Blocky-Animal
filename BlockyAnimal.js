@@ -191,7 +191,7 @@ var g_seconds = performance.now() / 1000.0 + g_startTime;
 function tick() {
   // Prints some debugging information to console
   g_seconds = performance.now() / 1000.0 + g_startTime;
-  console.log(performance.now);
+  console.log(performance.now());
 
   // Update Animation Angles
   updateAnimationAngles();
@@ -203,45 +203,45 @@ function tick() {
   requestAnimationFrame(tick);
 }
 
-var g_shapesList = [];
+// var g_shapesList = [];
 
-function click(ev) {
+// function click(ev) {
 
-  // Extract the event click and return it in WebGL coordinates
-  let [x, y] = convertCoordinatesEventToGL(ev);
+//   // Extract the event click and return it in WebGL coordinates
+//   let [x, y] = convertCoordinatesEventToGL(ev);
 
-  // Create and store the new Point
-  let point;
+//   // Create and store the new Point
+//   let point;
 
-  if (g_selectedType == POINT) {
-    point = new Point();
-  } else if (g_selectedType == TRIANGLE) {
-    point = new Triangle();
-  } else {
-    point = new Circle();
-  }
+//   if (g_selectedType == POINT) {
+//     point = new Point();
+//   } else if (g_selectedType == TRIANGLE) {
+//     point = new Triangle();
+//   } else {
+//     point = new Circle();
+//   }
 
-  point.position = [x,y];
-  point.color = g_selectedColor.slice();
-  point.size = g_selectedSize;
-  point.segments = g_segment;
-  g_shapesList.push(point);
+//   point.position = [x,y];
+//   point.color = g_selectedColor.slice();
+//   point.size = g_selectedSize;
+//   point.segments = g_segment;
+//   g_shapesList.push(point);
 
-  // Draw every shape that is supposed to be in the canvas
-  renderAllShapes();
-}
+//   // Draw every shape that is supposed to be in the canvas
+//   renderAllShapes();
+// }
 
-// Extract the event click and return it in WebGL coordinates
-function convertCoordinatesEventToGL(ev) {
-  var x = ev.clientX; // x coordinate of a mouse pointer
-  var y = ev.clientY; // y coordinate of a mouse pointer
-  var rect = ev.target.getBoundingClientRect();
+// // Extract the event click and return it in WebGL coordinates
+// function convertCoordinatesEventToGL(ev) {
+//   var x = ev.clientX; // x coordinate of a mouse pointer
+//   var y = ev.clientY; // y coordinate of a mouse pointer
+//   var rect = ev.target.getBoundingClientRect();
 
-  x = ((x - rect.left) - canvas.width/2)/(canvas.width/2);
-  y = (canvas.height/2 - (y - rect.top))/(canvas.height/2);
+//   x = ((x - rect.left) - canvas.width/2)/(canvas.width/2);
+//   y = (canvas.height/2 - (y - rect.top))/(canvas.height/2);
 
-  return([x,y]);
-}
+//   return([x,y]);
+// }
 
 // Update the angles of everything if currently animated
 function updateAnimationAngles() {
@@ -254,6 +254,7 @@ function updateAnimationAngles() {
 }
 
 // Draw every shape that is supposed to be in the canvas
+// renderScene() function which handles all of the drawing
 function renderAllShapes() {
 
   // Check the time at the start of this function
@@ -275,6 +276,9 @@ function renderAllShapes() {
   body.matrix.scale(0.7, 0.4, 0.4);
   body.render();
 
+  // Save the body's matrix
+  var bodyMatrix = new Matrix4(body.matrix);
+
   // Head
   var head = new Cube();
   head.color = [0.7, 0.7, 0.7, 1.0];
@@ -283,75 +287,86 @@ function renderAllShapes() {
   head.matrix.scale(0.3, 0.3, 0.3);
   head.render();
 
+  // Save head's matrix
+  var headMatrix = new Matrix4(head.matrix);
+
   // Left Eye
   var leftEye = new Cube();
   leftEye.color = [1.0, 1.0, 1.0, 1.0]; // white
-  leftEye.matrix = new Matrix4();
+  leftEye.matrix = new Matrix4(headMatrix);
   // leftEye.matrix.translate(0.65, 0.15, 0.2);
-  leftEye.matrix.translate(0.55, 0.08 + g_headMovement, 0.11);
-  leftEye.matrix.scale(0.05, 0.05, 0.05);
+  // leftEye.matrix.translate(0.55, 0.08 + g_headMovement, 0.11);
+  leftEye.matrix.translate(0.55, 0.08, 0.11);
+  leftEye.matrix.scale(0.15, 0.15, 0.15);
   leftEye.render();
 
   // Right Eye
   var rightEye = new Cube();
   rightEye.color = [1.0, 1.0, 1.0, 1.0]; // white
-  rightEye.matrix = new Matrix4();
-  // rightEye.matrix.translate(0.65, 0.15, -0.1);
-  rightEye.matrix.translate(0.55, 0.08 + g_headMovement, -0.06);
-  rightEye.matrix.scale(0.05, 0.05, 0.05);
+  rightEye.matrix = new Matrix4(headMatrix);
+  // rightEye.matrix.translate(0.55, 0.08 + g_headMovement, -0.06);
+  rightEye.matrix.translate(0.55, 0.08, -0.06);
+  rightEye.matrix.scale(0.15, 0.15, 0.15);
   rightEye.render();
 
   // Nose
   var nose = new Cube();
   nose.color = [0.2, 0.2, 0.2, 1.0]; // black
-  // nose.matrix.translate(0.7, 0.0, 0.05);
-  nose.matrix.translate(0.55, 0.0 + g_headMovement, 0.025);
-  nose.matrix.scale(0.05, 0.05, 0.05);
+  nose.matrix = new Matrix4(headMatrix);
+  // nose.matrix.translate(0.55, 0.0 + g_headMovement, 0.025);
+  nose.matrix.translate(0.55, 0.0, 0.025);
+  nose.matrix.scale(0.15, 0.15, 0.15);
   nose.render();
 
   // Mouth
   var mouth = new Cube();
   mouth.color = [0.2, 0.2, 0.2, 1.0];
-  // mouth.matrix.translate(0.7, -0.05, 0.05);
-  mouth.matrix.translate(0.55, -0.05 + g_headMovement, 0.025);
-  mouth.matrix.scale(0.05, 0.01, 0.05);
+  mouth.matrix = new Matrix4(headMatrix);
+  // mouth.matrix.translate(0.55, -0.05 + g_headMovement, 0.025);
+  mouth.matrix.translate(0.55, -0.05, 0.025);
+  mouth.matrix.scale(0.1, 0.03, 0.1);
   mouth.render();
 
   // Tail
   var tail = new Cube();
   tail.color = [0.5, 0.5, 0.5, 1.0];
+  tail.matrix = new Matrix4(bodyMatrix);
   tail.matrix.translate(-0.4, -0.2, 0.0);
   // tail.matrix.rotate(20*Math.sin(g_seconds), 0, 0, 1);  // tail wag animation
   tail.matrix.rotate(g_tailAngle, 0, 0, 1);  // tail wag animation
-  tail.matrix.scale(0.3, 0.1, 0.1);
+  tail.matrix.scale(0.7, 0.20, 0.20);
   tail.render();
 
   // Front left leg
   var frontLeftLeg = new Cube();
   frontLeftLeg.color = [0.4, 0.4, 0.4, 1.0];
+  frontLeftLeg.matrix = new Matrix4(bodyMatrix);
   frontLeftLeg.matrix.translate(0.2, -0.5, 0.2);
-  frontLeftLeg.matrix.scale(0.1, 0.5, 0.1);
+  frontLeftLeg.matrix.scale(0.15, 1.3, 0.15);
   frontLeftLeg.render();
 
   // Front right leg
   var frontRightLeg = new Cube();
   frontRightLeg.color = [0.4, 0.4, 0.4, 1.0];
+  frontRightLeg.matrix = new Matrix4(bodyMatrix);
   frontRightLeg.matrix.translate(0.2, -0.5, -0.2);
-  frontRightLeg.matrix.scale(0.1, 0.5, 0.1);
+  frontRightLeg.matrix.scale(0.15, 1.3, 0.15);
   frontRightLeg.render();
 
   // Back left leg
   var backLeftLeg = new Cube();
   backLeftLeg.color = [0.4, 0.4, 0.4, 1.0];
+  backLeftLeg.matrix = new Matrix4(bodyMatrix);
   backLeftLeg.matrix.translate(-0.2, -0.5, 0.2);
-  backLeftLeg.matrix.scale(0.1, 0.5, 0.1);
+  backLeftLeg.matrix.scale(0.15, 1.3, 0.15);
   backLeftLeg.render();
 
   // Back right leg
   var backRightLeg = new Cube();
   backRightLeg.color = [0.4, 0.4, 0.4, 1.0];
+  backRightLeg.matrix = new Matrix4(bodyMatrix);
   backRightLeg.matrix.translate(-0.2, -0.5, -0.2);
-  backRightLeg.matrix.scale(0.1, 0.5, 0.1);
+  backRightLeg.matrix.scale(0.15, 1.3, 0.15);
   backRightLeg.render();
 
   // Check the time at the end of the function, and show on web page
