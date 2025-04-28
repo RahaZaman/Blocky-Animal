@@ -37,7 +37,7 @@ function setupWebGL() {
   }
 
   gl.enable(gl.DEPTH_TEST);
-  // gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 }
 
 function connectVariablesToGLSL() {
@@ -60,13 +60,6 @@ function connectVariablesToGLSL() {
     console.log('Failed to get the storage location of u_FragColor');
     return;
   }
-
-  // // Get the storage location of u_Size
-  // u_Size = gl.getUniformLocation(gl.program, 'u_Size');
-  // if (!u_Size) {
-  //   console.log('Failed to get the storage location of u_Size');
-  //   return;
-  // }
 
   u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
   if (!u_ModelMatrix) {
@@ -95,59 +88,75 @@ let g_selectedColor = [1.0, 1.0, 1.0, 1.0];
 let g_selectedSize = 5;
 let g_selectedType = POINT;
 let g_globalAngle = 0;
-let g_yellowAngle = 0;
-let g_magentaAngle = 0;
-let g_yellowAnimation = false;
-// let g_segment = 10;  // segment for the circle
+
+// Head
+let g_headMovement = 0;
+
+// Tail
+let g_tailAngle = 0; 
+let g_tailAnimation = false;
+
+let g_prevMousePos = null; // Stores the previous mouse position
 
 // Set up actions for HTML UI elements
 function addActionsForHTMLUI() {
 
-  // color slider events
-  document.getElementById('redSlider').addEventListener('mouseup', function() { g_selectedColor[0] = this.value/100; });
-  document.getElementById('greenSlider').addEventListener('mouseup', function()  { g_selectedColor[1] = this.value/100; });
-  document.getElementById('blueSlider').addEventListener('mouseup', function() { g_selectedColor[2] = this.value/100; });
+  // Head movement slider
+  document.getElementById('headSlide').addEventListener('mousemove', function() { 
+    g_headMovement = this.value; 
+    renderAllShapes();
+  });
 
-  // // pick a specific color
-  // document.getElementById('colorPicker').addEventListener('input', function (e) {
-  //   let hexColor = e.target.value;
-  //   let rgb = hexToRgb(hexColor); // Convert to [r, g, b]
-  //   g_selectedColor = [rgb.r / 255, rgb.g / 255, rgb.b / 255, 1.0];
-  // });
+  // Tail movement slider
+  document.getElementById('tailSlide').addEventListener('mousemove', function() {
+    g_tailAngle = this.value; 
+    renderAllShapes();
+  });
+  
+  // animation buttons event
+  document.getElementById('animationTailOnButton').onclick = function() { g_tailAnimation = true; };
+  document.getElementById('animationTailOffButton').onclick = function() { g_tailAnimation = false; };
 
-  // // size slider event
-  // document.getElementById('sizeSlider').addEventListener('mouseup', function() { g_selectedSize = this.value; });
-
-  // // segment slider event for the circle
-  // document.getElementById('segmentSlider').addEventListener('mouseup', function() { g_segment = this.value; });
-
-  // point and triangle button event
-  document.getElementById('pointButton').onclick = function() {g_selectedType=POINT};
-  document.getElementById('triButton').onclick = function() {g_selectedType=TRIANGLE};
-  document.getElementById('circleButton').onclick = function() {g_selectedType=CIRCLE};
-
-  // clear button event
-  document.getElementById('clearButton').onclick = function() {g_shapesList = []; renderAllShapes();};
-
-  document.getElementById('magentaSlide').addEventListener('mousemove', function() { g_magentaAngle = this.value; renderAllShapes(); });
-
-  document.getElementById('yellowSlide').addEventListener('mousemove', function() { g_yellowAngle = this.value; renderAllShapes(); });
-
-  document.getElementById('animationYellowOnButton').onclick = function() {g_yellowAnimation = true };
-  document.getElementById('animationYellowOffButton').onclick = function() {g_yellowAnimation = false};
-
-  // Size Slider Event 
+  // camera movement slider event 
   document.getElementById('angleSlide').addEventListener('mousemove', function() { g_globalAngle = this.value; renderAllShapes(); });
 
 }
 
-function hexToRgb(hex) {
-  let bigint = parseInt(hex.slice(1), 16);
-  return {
-    r: (bigint >> 16) & 255,
-    g: (bigint >> 8) & 255,
-    b: bigint & 255
-  };
+// Function to handle mouse movements and update rotation
+function mouseMove(ev) {
+  // If no previous mouse position, set to current mouse position
+  if (!g_prevMousePos) {
+    g_prevMousePos = [ev.clientX, ev.clientY];
+  }
+
+  const deltaX = ev.clientX - g_prevMousePos[0];
+
+  g_globalAngle += deltaX * 0.5; // Adjust sensitivity as needed
+  g_globalAngle = g_globalAngle % 360; // Wrap the angle to stay within 0-360 range
+
+  // Redraw shapes to reflect the new rotation
+  renderAllShapes();
+
+  g_prevMousePos = [ev.clientX, ev.clientY];
+}
+
+// Function to handle mouse click (to start the tracking)
+function mouseDown(ev) {
+  g_prevMousePos = [ev.clientX, ev.clientY];
+  canvas.addEventListener('mousemove', mouseMove); // Start tracking mouse movement
+}
+
+// Function to stop tracking mouse movement when the mouse button is released
+function mouseUp(ev) {
+  g_prevMousePos = null;
+  canvas.removeEventListener('mousemove', mouseMove); // Stop tracking mouse movement
+}
+
+// Update the global rotation from the slider
+function updateSliderRotation() {
+  // Update global rotation based on slider's value
+  g_globalAngle = document.getElementById('angleSlide').value;
+  renderAllShapes(); // Redraw to reflect the updated angle
 }
 
 function main() {
@@ -162,15 +171,12 @@ function main() {
   addActionsForHTMLUI();
   
   // Register function (event handler) to be called on a mouse press
-  canvas.onmousedown = click;
-  canvas.onmousemove = function(ev) { if(ev.buttons == 1) { click(ev) } };
+  // canvas.onmousedown = click;
+  // canvas.onmousemove = function(ev) { if(ev.buttons == 1) { click(ev) } };
 
-  // canvas.onmouseup = function() {
-  //   g_prevMousePos = null;
-  // };  
-
-  // Specify the color for clearing <canvas>
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);
+  canvas.onmousedown = mouseDown;
+  canvas.onmouseup = mouseUp;
+  canvas.onmousemove = function(ev) { if(ev.buttons === 1) { mouseMove(ev) }; };  // mouse rotation while pressed
 
   // // Clear <canvas>
   // gl.clear(gl.COLOR_BUFFER_BIT);
@@ -239,8 +245,11 @@ function convertCoordinatesEventToGL(ev) {
 
 // Update the angles of everything if currently animated
 function updateAnimationAngles() {
-  if (g_yellowAnimation) {
-    g_yellowAngle = (45 * Math.sin(g_seconds));
+
+  if (g_tailAnimation) {
+    g_tailAngle = 20 * Math.sin(g_seconds);  // wag the tail between -20 and 20 degrees
+
+    g_headMovement = 20 * Math.sin(g_seconds); // move the head between -20 and 20 degrees
   }
 }
 
@@ -256,58 +265,94 @@ function renderAllShapes() {
 
   // Clear <canvas>
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.clear(gl.COLOR_BUFFER_BIT);
 
-  // // var len = g_points.length;
-  // var len = g_shapesList.length;
+  // Render all parts of the animal model (body, head, legs, etc.)
 
-  // for(var i = 0; i < len; i++) {
-  //   g_shapesList[i].render();
-  // }
-
-  // drawTriangle3D([-1.0, 0.0, 0.0,   -0.5, -1.0, 0.0,  0.0, 0.0, 0.0]);
-
-  // Draw the body cube
+  // Body
   var body = new Cube();
-  body.color = [1.0, 0.0, 0.0, 1.0];
-  body.matrix.translate(-.25, -.75, 0.0);
-  body.matrix.rotate(-5, 1, 0, 0);
-  body.matrix.scale(0.5, .3, .5); 
+  body.color = [0.6, 0.6, 0.6, 1.0]; // Gray wolf body
+  body.matrix.translate(0.0, -0.25, 0.0);
+  body.matrix.scale(0.7, 0.4, 0.4);
   body.render();
 
-  // Draw a left arm
-  var leftarm = new Cube();
-  leftarm.color = [1, 1, 0, 1];
-  leftarm.matrix.setTranslate(0, -.5, 0.0);
-  leftarm.matrix.rotate(-5, 1, 0, 0);
-  leftarm.matrix.rotate(-g_yellowAngle, 0, 0, 1);
-  // leftarm.matrix.rotate(45*Math.sin(g_seconds), 0, 0, 1);
+  // Head
+  var head = new Cube();
+  head.color = [0.7, 0.7, 0.7, 1.0];
+  head.matrix.translate(0.4, 0.0, 0.02);
+  head.matrix.rotate(g_headMovement, 0, 0, 1); // head movement rotation
+  head.matrix.scale(0.3, 0.3, 0.3);
+  head.render();
 
-  // if (g_yellowAnimation) {
-  //   leftarm.matrix.rotate(45*Math.sin(g_seconds), 0, 0, 1);
-  // } else {
-  //   leftarm.matrix.rotate(-g_yellowAngle, 0, 0, 1);
-  // }
+  // Left Eye
+  var leftEye = new Cube();
+  leftEye.color = [1.0, 1.0, 1.0, 1.0]; // white
+  leftEye.matrix = new Matrix4();
+  // leftEye.matrix.translate(0.65, 0.15, 0.2);
+  leftEye.matrix.translate(0.55, 0.08 + g_headMovement, 0.11);
+  leftEye.matrix.scale(0.05, 0.05, 0.05);
+  leftEye.render();
 
-  var yellowCoordinatesMat = new Matrix4(leftarm.matrix);
-  leftarm.matrix.scale(0.25, .7, .5);
-  leftarm.matrix.translate(-.5, 0, 0);
-  leftarm.render();
+  // Right Eye
+  var rightEye = new Cube();
+  rightEye.color = [1.0, 1.0, 1.0, 1.0]; // white
+  rightEye.matrix = new Matrix4();
+  // rightEye.matrix.translate(0.65, 0.15, -0.1);
+  rightEye.matrix.translate(0.55, 0.08 + g_headMovement, -0.06);
+  rightEye.matrix.scale(0.05, 0.05, 0.05);
+  rightEye.render();
 
-  // Test box
-  var box = new Cube();
-  box.color = [1, 0, 1, 1];
-  box.matrix = yellowCoordinatesMat;
-  // box.matrix.translate(0, 0.65, 0);
-  // box.matrix.rotate(45, 1, 0, 0);
-  // box.matrix.scale(.3, .3, .3);
-  // box.matrix.translate(-5.0, -0.001);
+  // Nose
+  var nose = new Cube();
+  nose.color = [0.2, 0.2, 0.2, 1.0]; // black
+  // nose.matrix.translate(0.7, 0.0, 0.05);
+  nose.matrix.translate(0.55, 0.0 + g_headMovement, 0.025);
+  nose.matrix.scale(0.05, 0.05, 0.05);
+  nose.render();
 
-  box.matrix.translate(0, 0.65, 0);
-  box.matrix.rotate(g_magentaAngle, 0, 0, 1);
-  box.matrix.scale(.3, .3, .3);
-  box.matrix.translate(-.5, 0, -0.001);
-  box.render();
+  // Mouth
+  var mouth = new Cube();
+  mouth.color = [0.2, 0.2, 0.2, 1.0];
+  // mouth.matrix.translate(0.7, -0.05, 0.05);
+  mouth.matrix.translate(0.55, -0.05 + g_headMovement, 0.025);
+  mouth.matrix.scale(0.05, 0.01, 0.05);
+  mouth.render();
+
+  // Tail
+  var tail = new Cube();
+  tail.color = [0.5, 0.5, 0.5, 1.0];
+  tail.matrix.translate(-0.4, -0.2, 0.0);
+  // tail.matrix.rotate(20*Math.sin(g_seconds), 0, 0, 1);  // tail wag animation
+  tail.matrix.rotate(g_tailAngle, 0, 0, 1);  // tail wag animation
+  tail.matrix.scale(0.3, 0.1, 0.1);
+  tail.render();
+
+  // Front left leg
+  var frontLeftLeg = new Cube();
+  frontLeftLeg.color = [0.4, 0.4, 0.4, 1.0];
+  frontLeftLeg.matrix.translate(0.2, -0.5, 0.2);
+  frontLeftLeg.matrix.scale(0.1, 0.5, 0.1);
+  frontLeftLeg.render();
+
+  // Front right leg
+  var frontRightLeg = new Cube();
+  frontRightLeg.color = [0.4, 0.4, 0.4, 1.0];
+  frontRightLeg.matrix.translate(0.2, -0.5, -0.2);
+  frontRightLeg.matrix.scale(0.1, 0.5, 0.1);
+  frontRightLeg.render();
+
+  // Back left leg
+  var backLeftLeg = new Cube();
+  backLeftLeg.color = [0.4, 0.4, 0.4, 1.0];
+  backLeftLeg.matrix.translate(-0.2, -0.5, 0.2);
+  backLeftLeg.matrix.scale(0.1, 0.5, 0.1);
+  backLeftLeg.render();
+
+  // Back right leg
+  var backRightLeg = new Cube();
+  backRightLeg.color = [0.4, 0.4, 0.4, 1.0];
+  backRightLeg.matrix.translate(-0.2, -0.5, -0.2);
+  backRightLeg.matrix.scale(0.1, 0.5, 0.1);
+  backRightLeg.render();
 
   // Check the time at the end of the function, and show on web page
   var duration = performance.now() - startTime;

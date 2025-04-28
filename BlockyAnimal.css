@@ -1,0 +1,18 @@
+canvas { 
+    background: lightblue; 
+}
+
+body { 
+    text-align: center; 
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 10px;
+}
+
+.controls {
+    margin-top: 10px;
+}
+
+.controls > * {
+    margin: 5px;
+}
