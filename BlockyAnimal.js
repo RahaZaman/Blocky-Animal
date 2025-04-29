@@ -203,46 +203,6 @@ function tick() {
   requestAnimationFrame(tick);
 }
 
-// var g_shapesList = [];
-
-// function click(ev) {
-
-//   // Extract the event click and return it in WebGL coordinates
-//   let [x, y] = convertCoordinatesEventToGL(ev);
-
-//   // Create and store the new Point
-//   let point;
-
-//   if (g_selectedType == POINT) {
-//     point = new Point();
-//   } else if (g_selectedType == TRIANGLE) {
-//     point = new Triangle();
-//   } else {
-//     point = new Circle();
-//   }
-
-//   point.position = [x,y];
-//   point.color = g_selectedColor.slice();
-//   point.size = g_selectedSize;
-//   point.segments = g_segment;
-//   g_shapesList.push(point);
-
-//   // Draw every shape that is supposed to be in the canvas
-//   renderAllShapes();
-// }
-
-// // Extract the event click and return it in WebGL coordinates
-// function convertCoordinatesEventToGL(ev) {
-//   var x = ev.clientX; // x coordinate of a mouse pointer
-//   var y = ev.clientY; // y coordinate of a mouse pointer
-//   var rect = ev.target.getBoundingClientRect();
-
-//   x = ((x - rect.left) - canvas.width/2)/(canvas.width/2);
-//   y = (canvas.height/2 - (y - rect.top))/(canvas.height/2);
-
-//   return([x,y]);
-// }
-
 // Update the angles of everything if currently animated
 function updateAnimationAngles() {
 
